@@ -237,7 +237,7 @@ function SupaAPI(){
 
 /* ====== backend de demostración (localStorage) ====== */
 function semilla(){
-  return {seq:0,
+  return {seq:100,
     users:[{id:'u1',usuario:'admin',clave:'admin123',nombre:'Administrador',rol:'admin',activo:true}],
     cats:[{codigo:'desayuno',nombre:'Desayuno',tope:5000,orden:1,activo:true},{codigo:'almuerzo',nombre:'Almuerzo',tope:8000,orden:2,activo:true},{codigo:'cena',nombre:'Cena',tope:8000,orden:3,activo:true},{codigo:'hidratacion',nombre:'Hidratación',tope:2000,orden:4,activo:true}],
     pagos:[],boletas:[],habs:[]};
@@ -341,18 +341,14 @@ function vistaTec(){
   +tabs([['nueva','Nueva boleta'],['boletas','Mis boletas'],['pagos','Mis pagos'],['datos','Mis datos']])+`<main class="band">${(C[S.tab]||formBoleta)()}</main>`}
 function catsHTML(){const f=S.fb;const dia=estadoDia(S.me.id,f.fecha);if(f.categoria&&!dia.some(x=>x.c.codigo===f.categoria&&x.libre))f.categoria='';
   return `<fieldset class="cats"><legend>¿Qué estás rindiendo?</legend>${dia.map(x=>`<label class="cat ${x.libre?'':'off'}"><input type="radio" name="categoria" value="${esc(x.c.codigo)}" ${f.categoria===x.c.codigo?'checked':''} ${x.libre?'':'disabled'} required><b>${esc(x.c.nombre)}</b><span>${x.libre?(x.extra?'Extra habilitada':'Máx. '+clp(x.c.tope)):'Ya rendido ese día'}</span></label>`).join('')}</fieldset>`}
-function formBoleta(){const f=S.fb||(S.fb={fecha:hoy(),categoria:''});
+function formBoleta(){const f=S.fb||(S.fb={categoria:''});f.fecha=hoy();
   return `<form id="fBoleta" class="col form-boleta" autocomplete="off">${catsHTML()}
-  <div class="row2"><label>Fecha de la boleta<input type="date" name="fecha" value="${esc(f.fecha)}" max="${hoy()}" required></label>
-  <label>Monto total de la boleta ($)<input type="number" name="monto_boleta" inputmode="numeric" min="1" step="1" placeholder="Ej: 8500" required value="${esc(f.monto_boleta||'')}"></label></div>
+  <label>Monto total de la boleta ($)<input type="number" name="monto_boleta" inputmode="numeric" min="1" step="1" placeholder="Ej: 8500" required value="${esc(f.monto_boleta||'')}"></label>
   <p class="calc" id="calc" aria-live="polite"></p>
-  <div class="row2"><label>Local o comercio<input name="comercio" maxlength="80" placeholder="Ej: Restaurante El Paso" value="${esc(f.comercio||'')}"></label>
-  <label>N° de boleta <small class="muted">(opcional)</small><input name="numero_boleta" maxlength="30" inputmode="numeric" value="${esc(f.numero_boleta||'')}"></label></div>
-  <label>Obra o cliente<input name="obra" maxlength="80" placeholder="¿En qué trabajo estabas?" value="${esc(f.obra||'')}"></label>
   <label>Foto de la boleta<input type="file" name="foto" accept="image/*,application/pdf" required></label><div id="prev" class="prev"></div>
   <label>Comentario <small class="muted">(opcional)</small><textarea name="observacion" rows="2" maxlength="300">${esc(f.observacion||'')}</textarea></label>
   <button class="btn big" id="btnEnviar">Enviar boleta</button></form>`}
-function guardarFB(fm){['fecha','monto_boleta','comercio','numero_boleta','obra','observacion'].forEach(k=>S.fb[k]=fm[k].value);S.fb.categoria=fm.querySelector('[name=categoria]:checked')?.value||''}
+function guardarFB(fm){['monto_boleta','observacion'].forEach(k=>S.fb[k]=fm[k].value);S.fb.categoria=fm.querySelector('[name=categoria]:checked')?.value||''}
 function actualizarCalc(){const fm=$('#fBoleta'),el=$('#calc');if(!fm||!el)return;const m=Math.round(+fm.monto_boleta.value||0);const c=S.cats.find(x=>x.codigo===fm.querySelector('[name=categoria]:checked')?.value);
   if(!c||!m){el.textContent='';el.className='calc';return}const r=Math.min(m,c.tope);
   el.className='calc '+(m>c.tope?'warn':'ok');el.textContent=m>c.tope?`Se reembolsarán ${clp(r)}: la boleta supera el máximo de ${c.nombre} por ${clp(m-c.tope)}.`:`Se reembolsarán ${clp(r)}.`}
@@ -361,17 +357,15 @@ function preview(file){const p=$('#prev');if(!p)return;if(!file){p.innerHTML='';
 async function enviarBoleta(fm){
   const file=fm.foto.files[0];const cat=fm.querySelector('[name=categoria]:checked');
   if(!cat)return toast('Elige qué estás rindiendo.','err');if(!file)return toast('Adjunta la foto de la boleta.','err');
-  const d={categoria:cat.value,fecha:fm.fecha.value,monto_boleta:Math.round(+fm.monto_boleta.value),comercio:fm.comercio.value.trim()||null,numero_boleta:fm.numero_boleta.value.trim()||null,obra:fm.obra.value.trim()||null,observacion:fm.observacion.value.trim()||null};
+  const d={categoria:cat.value,fecha:hoy(),monto_boleta:Math.round(+fm.monto_boleta.value),observacion:fm.observacion.value.trim()||null};
   if(!(d.monto_boleta>0))return toast('Ingresa el monto de la boleta.','err');
-  if(d.numero_boleta&&S.boletas.some(b=>b.numero_boleta===d.numero_boleta&&(b.comercio||'').toLowerCase()===(d.comercio||'').toLowerCase()&&b.estado!=='rechazada')){
-    if(!await confirmar('Ya rendiste una boleta con ese número en ese local. ¿Enviarla igual?','Enviar igual'))return}
   const btn=$('#btnEnviar');btn.disabled=true;btn.textContent='Enviando…';
   try{const b=await api.crearBoleta(d,file);S.fb={fecha:hoy(),categoria:''};await refrescar('Boleta enviada. Se te reembolsarán '+clp(b.monto_aprobado)+'.')}
   catch(e){toast(msgErr(e),'err');btn.disabled=false;btn.textContent='Enviar boleta'}}
 function misBoletas(){const mes=S.mesTec;const todas=S.boletas.filter(b=>b.tecnico_id===S.me.id);const bs=todas.filter(b=>!mes||mesDe(b.fecha)===mes);
   const meses=[...new Set(todas.map(b=>mesDe(b.fecha)))].sort().reverse();
   return `<div class="bar"><label class="inl">Mes<select data-f="mesTec"><option value="">Todos</option>${meses.map(m=>opt(m,nomMes(m),mes)).join('')}</select></label><span class="muted">${bs.length} boleta${bs.length===1?'':'s'} · ${clp(sumar(bs.filter(b=>b.estado!=='rechazada'),b=>b.monto_aprobado))} rendido</span></div>
-  ${bs.length?`<ul class="cards">${bs.map(b=>`<li class="card"><div class="c1"><b>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</b><span class="muted">${fFecha(b.fecha)}${b.comercio?' · '+esc(b.comercio):''}${b.obra?' · '+esc(b.obra):''}</span></div>
+  ${bs.length?`<ul class="cards">${bs.map(b=>`<li class="card"><div class="c1"><b>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</b><span class="muted">${fFecha(b.fecha)}${b.observacion?' · '+esc(b.observacion):''}</span></div>
   <div class="c2"><span class="num">${clp(b.monto_aprobado)}</span>${b.monto_boleta!==b.monto_aprobado?`<small class="muted num">boleta ${clp(b.monto_boleta)}</small>`:''}${badge(b.estado)}</div>
   ${b.motivo_admin?`<p class="nota">Administrador: ${esc(b.motivo_admin)}</p>`:''}<div class="c3"><button class="btn ghost sm" data-act="verB" data-id="${esc(b.id)}">Ver foto</button>${b.pago_id?`<button class="btn ghost sm" data-act="verP" data-id="${esc(b.pago_id)}">Ver comprobante</button>`:''}${b.estado==='pendiente'?`<button class="btn ghost sm danger" data-act="delB" data-id="${esc(b.id)}">Eliminar</button>`:''}</div></li>`).join('')}</ul>`:vacio('No tienes boletas en este período.')}`}
 function misPagos(){const ps=S.pagos.filter(p=>p.tecnico_id===S.me.id);
@@ -405,8 +399,8 @@ function admBoletas(){const bs=filtrarBoletas(),f=S.f;const meses=[...new Set(S.
   <label>Mes<select data-f="mes"><option value="">Todos</option>${meses.map(m=>opt(m,nomMes(m),f.mes)).join('')}</select></label><label>Ítem<select data-f="cat"><option value="">Todos</option>${S.cats.map(c=>opt(c.codigo,c.nombre,f.cat)).join('')}</select></label>
   <button class="btn ghost sm" data-act="csvB">Exportar a Excel (CSV)</button></div>
   <p class="muted">${bs.length} boleta${bs.length===1?'':'s'} · montos de boleta ${clp(sumar(bs,b=>b.monto_boleta))} · a reembolsar ${clp(sumar(bs.filter(b=>b.estado!=='rechazada'),b=>b.monto_aprobado))}</p>
-  <table class="t stack"><thead><tr><th>Fecha</th><th>Técnico</th><th>Ítem</th><th>Local / obra</th><th class="r">Boleta</th><th class="r">Reembolso</th><th>Estado</th><th></th></tr></thead><tbody>${bs.map(b=>`<tr><td class="nw">${fFecha(b.fecha)}</td><td>${esc(nombreDe(b.tecnico_id))}</td><td>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</td>
-  <td>${esc(b.comercio||'—')}${b.obra?`<br><small class="muted">${esc(b.obra)}</small>`:''}</td><td class="r num">${clp(b.monto_boleta)}</td><td class="r num"><b>${clp(b.monto_aprobado)}</b>${b.monto_boleta>b.monto_aprobado&&b.estado!=='rechazada'?'<br><small class="muted">tope aplicado</small>':''}</td><td>${badge(b.estado)}</td>
+  <table class="t stack"><thead><tr><th>Fecha</th><th>Técnico</th><th>Ítem</th><th>Comentario</th><th class="r">Boleta</th><th class="r">Reembolso</th><th>Estado</th><th></th></tr></thead><tbody>${bs.map(b=>`<tr><td class="nw">${fFecha(b.fecha)}</td><td>${esc(nombreDe(b.tecnico_id))}</td><td>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</td>
+  <td>${esc(b.observacion||'—')}</td><td class="r num">${clp(b.monto_boleta)}</td><td class="r num"><b>${clp(b.monto_aprobado)}</b>${b.monto_boleta>b.monto_aprobado&&b.estado!=='rechazada'?'<br><small class="muted">tope aplicado</small>':''}</td><td>${badge(b.estado)}</td>
   <td><div class="acts-cell"><button class="btn ghost sm" data-act="verB" data-id="${esc(b.id)}">Foto</button>${b.estado!=='pagada'?`<button class="btn ghost sm" data-act="ajustar" data-id="${esc(b.id)}">Revisar</button>`:''}</div></td></tr>`).join('')||`<tr><td colspan="8">${vacio('No hay boletas con estos filtros.')}</td></tr>`}</tbody></table>`}
 function admPagos(){const ps=S.pagos.filter(p=>!S.f.tec||p.tecnico_id===S.f.tec);
   return `<div class="filters">${selTec()}<button class="btn ghost sm" data-act="csvP">Exportar a Excel (CSV)</button></div><p class="muted">${ps.length} pago${ps.length===1?'':'s'} · ${clp(sumar(ps,p=>p.monto))}</p>
@@ -477,7 +471,7 @@ function modalClave(u){abrirModal(`<h3>Nueva clave para ${esc(u.nombre||u.usuari
 /* ====== exportar ====== */
 function descargarCSV(nombre,filas){const csv='﻿'+filas.map(r=>r.map(v=>{const s=String(v??'');return /[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n');
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}catch(e){toast('El navegador bloqueó la descarga.','err')}}
-function csvBoletas(){descargarCSV(`boletas_${hoy()}.csv`,[['Fecha','Técnico','Ítem','Local','N° boleta','Obra','Monto boleta','Tope','Reembolso','Estado','Extra','Nota admin'],...filtrarBoletas().map(b=>[fFecha(b.fecha),nombreDe(b.tecnico_id),catDe(b.categoria),b.comercio,b.numero_boleta,b.obra,b.monto_boleta,b.tope_aplicado,b.monto_aprobado,ESTADOS[b.estado],b.extra?'Sí':'',b.motivo_admin])])}
+function csvBoletas(){descargarCSV(`boletas_${hoy()}.csv`,[['Fecha','Técnico','Ítem','Comentario','Monto boleta','Tope','Reembolso','Estado','Extra','Nota admin'],...filtrarBoletas().map(b=>[fFecha(b.fecha),nombreDe(b.tecnico_id),catDe(b.categoria),b.observacion,b.monto_boleta,b.tope_aplicado,b.monto_aprobado,ESTADOS[b.estado],b.extra?'Sí':'',b.motivo_admin])])}
 function csvPagos(){descargarCSV(`pagos_${hoy()}.csv`,[['Fecha pago','Técnico','Monto','N° boletas','Nota'],...S.pagos.filter(p=>!S.f.tec||p.tecnico_id===S.f.tec).map(p=>[fFecha(p.fecha_pago),nombreDe(p.tecnico_id),p.monto,S.boletas.filter(b=>b.pago_id===p.id).length,p.nota])])}
 
 /* ====== render y eventos ====== */
