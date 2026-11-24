@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rendiciones Click Solutions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* VOICE: herramienta de trabajo, directa, cero adorno: plata que se debe y plata que se pagó.
+   IDEA: la boleta y la caja de remedios: bloques rectangulares con borde negro, como etiquetas.
+   PICTURE: el saldo por reembolsar en grande sobre un bloque esmeralda; el día de hoy en bloque rosado.
+   COLOUR and TYPE: blanco, esmeralda #00a86b, rosado #ffd6e0, negro; noche #04140d. Schibsted Grotesk.
+   LAYOUT: una columna en el celular para el técnico; tablas y paneles anchos para el administrador. */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#04140d);--ink:light-dark(#0b0f0d,#e6f4ec);--muted:light-dark(#5a6560,#93b3a3);
+--line:light-dark(#0b0f0d,#2c5743);--soft:light-dark(#f1f8f4,#0a2219);--card:light-dark(#ffffff,#071b13);
+--em:#00a86b;--em2:light-dark(#00895a,#2fd096);--pink:light-dark(#ffd6e0,#3d1f29);--pinkink:light-dark(#4a1222,#ffd6e0);
+--danger:light-dark(#b42332,#ff7b86);--warn:light-dark(#8a5a00,#ffc960);--r:4px}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Schibsted Grotesk",system-ui,sans-serif;overflow-x:clip}
+body.lock{overflow:hidden}
+h1,h2,h3{line-height:1.08;margin:0 0 .5em;text-wrap:balance}
+h1{font-size:clamp(32px,5vw,46px);font-weight:800}h2{font-size:22px;font-weight:800;margin-top:1.4em}h3{font-size:19px;font-weight:800}
+.band{padding:clamp(18px,3vw,40px) max(4vw,16px);max-width:1240px;margin:0 auto}
+.muted{color:var(--muted)}small{font-size:13px}code{overflow-wrap:anywhere;font-size:14px}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}.r{text-align:right}.nw{white-space:nowrap}
+pre,.scroll{overflow-x:auto}
+/* controles */
+label{display:grid;gap:5px;font-weight:600;font-size:14px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:10px 12px;min-height:46px;width:100%}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;min-height:0;accent-color:var(--em)}
+input[type=file]{padding:9px;background:var(--soft)}
+:focus-visible{outline:3px solid var(--em);outline-offset:2px}
+.btn{font:inherit;font-weight:600;font-size:15px;min-height:44px;padding:9px 18px;border-radius:var(--r);border:1.5px solid var(--line);background:var(--ink);color:var(--bg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:hover{background:var(--em);border-color:var(--em);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;background:var(--ink);color:var(--bg);border-color:var(--line)}
+.btn.ghost{background:transparent;color:var(--ink)}.btn.ghost:hover{background:var(--soft);color:var(--ink);border-color:var(--line)}
+.btn.sm{min-height:36px;padding:5px 12px;font-size:14px}.btn.big{min-height:54px;font-size:17px;width:100%}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.col{display:grid;gap:16px}.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}.acts .sp{flex:1}
+.acts-cell{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.bar,.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+.filters label{min-width:150px;flex:1 1 150px}.bar .inl{display:flex;align-items:center;gap:8px}.bar .inl select{width:auto}
+/* cabecera */
+.top{display:flex;align-items:center;gap:14px;padding:12px max(4vw,16px);border-bottom:2px solid var(--line)}
+.brand{display:flex;flex-direction:column;line-height:1.1;margin-right:auto}.brand b{font-size:19px;font-weight:800}.brand span{font-size:13px;color:var(--em2);font-weight:600}
+.who{display:flex;flex-direction:column;text-align:right;line-height:1.2}.who small{color:var(--muted)}
+.demo{background:var(--pink);color:var(--pinkink);padding:8px max(4vw,16px);font-size:14px;font-weight:500}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--line);padding:0 max(4vw,16px)}
+.tabs button{font:inherit;font-weight:600;font-size:15px;background:none;border:0;border-bottom:4px solid transparent;color:var(--muted);padding:13px 14px 10px;min-height:48px;cursor:pointer;white-space:nowrap;flex:none}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--em)}
+/* héroe técnico */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);border-bottom:2px solid var(--line)}
+.saldo{background:var(--em);color:#fff;padding:clamp(22px,4vw,44px) max(4vw,16px);display:flex;flex-direction:column;justify-content:center;gap:4px}
+.saldo span{font-weight:600}.saldo strong{font-size:clamp(44px,9vw,76px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.saldo small{font-size:14px;opacity:.92}
+.hoy{background:var(--pink);color:var(--pinkink);padding:clamp(18px,3vw,32px) max(4vw,16px);border-left:2px solid var(--line)}
+.hoy .h{font-weight:800;display:block;margin-bottom:10px}
+.hoy ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hoy li{border:1.5px solid currentColor;border-radius:var(--r);padding:8px 10px;display:grid;line-height:1.25}
+.hoy li span{font-size:13px}.hoy li.usado{background:var(--pinkink);color:var(--pink)}
+/* formulario boleta */
+.form-boleta{max-width:720px}
+.cats{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cats legend{font-weight:800;font-size:19px;margin-bottom:10px;padding:0}
+.cat{border:1.5px solid var(--line);border-radius:var(--r);padding:12px;cursor:pointer;display:grid;gap:2px;position:relative;font-weight:400;min-height:76px}
+.cat input{position:absolute;opacity:0;pointer-events:none}.cat b{font-size:16px}.cat span{font-size:13px;color:var(--muted)}
+.cat:has(input:checked){background:var(--ink);color:var(--bg)}.cat:has(input:checked) span{color:inherit;opacity:.8}
+.cat:has(input:focus-visible){outline:3px solid var(--em);outline-offset:2px}
+.cat.off{opacity:.45;cursor:not-allowed;border-style:dashed}
+.calc{margin:-4px 0 0;font-weight:600;min-height:1.5em}.calc.ok{color:var(--em2)}.calc.warn{color:var(--warn)}
+.prev img{max-height:180px;border:1.5px solid var(--line);border-radius:var(--r)}.prev:empty{display:none}
+/* tarjetas */
+.cards{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.card{border:1.5px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;background:var(--card)}
+.c1{display:flex;flex-direction:column}.c1 b{font-size:16px}.c1 .muted{font-size:14px}
+.c2{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.c2 .num{font-weight:800;font-size:18px}
+.c3{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.card details{grid-column:1/-1;font-size:14px}.card summary{cursor:pointer;font-weight:600}
+.nota{grid-column:1/-1;margin:0;font-size:14px;background:var(--soft);padding:6px 10px;border-radius:var(--r)}
+.mini{list-style:none;padding:6px 0 0;margin:0;display:grid;gap:4px}.mini li{display:flex;justify-content:space-between;gap:10px}
+.badge{display:inline-block;font-size:13px;font-weight:600;padding:2px 9px;border-radius:99px;border:1.5px solid currentColor;white-space:nowrap}
+.b-pendiente{color:var(--warn)}.b-pagada{color:var(--em2)}.b-rechazada{color:var(--danger)}
+.tag{display:inline-block;font-size:12px;font-weight:600;background:var(--pink);color:var(--pinkink);padding:1px 7px;border-radius:var(--r);margin-left:4px;vertical-align:middle}
+.vacio{border:1.5px dashed var(--line);border-radius:var(--r);padding:26px;text-align:center;color:var(--muted)}
+/* admin */
+.kpis{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));border:2px solid var(--line);border-radius:var(--r);overflow:hidden}
+.kpi{padding:18px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:2px}.kpi:first-child{border-left:0}
+.kpi span{font-size:14px;font-weight:600}.kpi strong{font-size:clamp(26px,3.4vw,36px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}.kpi small{color:var(--muted)}
+.kpi.main{background:var(--em);color:#fff}.kpi.main small{color:#fff;opacity:.9}
+table.t{width:100%;border-collapse:collapse;font-size:15px}
+.t th{text-align:left;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--line);padding:8px 10px}
+.t td{border-bottom:1px solid color-mix(in srgb,var(--line) 25%,transparent);padding:10px;vertical-align:top}
+.t tr.dim td{opacity:.55}.t .r{text-align:right}
+.numin{width:120px;text-align:right;display:inline-block}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;align-items:start}
+.box{border:2px solid var(--line);border-radius:var(--r);padding:18px;background:var(--soft)}
+.narrow{max-width:560px}
+/* login */
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+.login .izq{padding:clamp(28px,6vw,80px) max(5vw,20px);display:flex;flex-direction:column;justify-content:center;gap:18px;max-width:640px}
+.login .der{background:var(--em);color:#fff;padding:clamp(28px,6vw,80px) max(5vw,20px);display:flex;flex-direction:column;justify-content:center;gap:14px;border-left:2px solid var(--line)}
+.lbl{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;font-weight:800;font-size:20px}.lbl span{white-space:nowrap}.login h1{margin:0}.lbl span{font-weight:600;font-size:14px;color:var(--em2)}
+.etq{background:#fff;color:#0b0f0d;border:2px solid #0b0f0d;border-radius:var(--r);max-width:380px}
+.etq div{display:flex;justify-content:space-between;padding:12px 16px;border-top:1.5px dashed #0b0f0d;font-weight:600}.etq div:first-child{border-top:0;background:var(--pink);color:#4a1222;font-weight:800}
+.etq b{font-variant-numeric:tabular-nums}
+.der p{max-width:380px;margin:0}
+.aviso{background:var(--pink);color:var(--pinkink);border:2px solid var(--line);border-radius:var(--r);padding:14px 18px;max-width:440px;box-shadow:5px 5px 0 var(--line);transform:rotate(-1deg)}
+.aviso b{display:block;font-size:13px;font-weight:600;margin-bottom:2px}.aviso p{margin:0;font-size:21px;font-weight:800;line-height:1.15}.aviso span{display:block;margin-top:6px;font-size:14px;font-style:italic}
+@media (prefers-reduced-motion:reduce){.aviso{transform:none}}
+/* modal y aviso */
+.modal{position:fixed;inset:0;background:rgb(0 0 0/.55);display:flex;align-items:flex-start;justify-content:center;padding:max(3vh,12px) 12px;z-index:20;overflow-y:auto}
+.modal[hidden]{display:none}
+.mbody{background:var(--bg);color:var(--ink);border:2px solid var(--line);border-radius:var(--r);padding:22px;width:min(640px,100%)}
+.visor{max-width:100%;max-height:70vh;display:block;margin:0 auto;border:1.5px solid var(--line)}
+.banco{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;background:var(--soft);border:1.5px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:14px;font-size:15px}
+.checks{display:grid;gap:4px;max-height:280px;overflow-y:auto;border:1.5px solid var(--line);border-radius:var(--r);padding:8px}
+.chk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;font-weight:400;padding:6px;border-radius:var(--r)}
+.chk.all{font-weight:600;border-bottom:1px solid var(--line);grid-template-columns:auto 1fr}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin:0;font-weight:600}.total strong{font-size:28px;font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,140%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:var(--r);font-weight:600;max-width:min(560px,92vw);z-index:30;transition:transform .25s,visibility .25s;visibility:hidden}
+.toast.show{transform:translate(-50%,0);visibility:visible}.toast.err{background:var(--danger);color:#fff}.toast.ok{background:var(--em);color:#fff}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:2px solid var(--line)}.split{grid-template-columns:1fr}}
+@media(max-width:760px){.hero,.login{grid-template-columns:1fr}.hoy,.login .der{border-left:0;border-top:2px solid var(--line)}.cats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.row2{grid-template-columns:1fr}.who{display:none}table{font-size:13px}
+.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--muted);font-size:13px}.stack td:empty{display:none}.stack .acts-cell{justify-content:flex-start}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<div id="app"><p class="band muted">Cargando…</p></div>
+<div id="modal" class="modal" hidden><div class="mbody" id="modalBody" role="dialog" aria-modal="true"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<datalist id="bancos"><option>BancoEstado</option><option>Banco de Chile</option><option>Banco Santander</option><option>BCI</option><option>Scotiabank</option><option>Banco Itaú</option><option>Banco Falabella</option><option>Banco Ripley</option><option>Banco Security</option><option>Banco BICE</option><option>Mercado Pago</option><option>Tenpo</option><option>Mach</option></datalist>
+<script>
+{
+/* ====== CONFIGURACIÓN ======
+   Deja SUPABASE_URL vacío para usar el modo demostración (datos solo en este navegador).
+   Para usarlo con tu equipo, pega aquí la URL y la clave "anon public" de tu proyecto Supabase. */
+const CONFIG={
+  SUPABASE_URL:'https://bkjjbjoqklqtdppbirbq.supabase.co',
+  SUPABASE_ANON_KEY:'PEGAR_AQUI_LA_CLAVE_ANON',
+  DOMINIO:'rendiciones.clicksolutions.cl' // solo para armar el login interno (usuario@dominio); no se envían correos
+};
+const DEMO=!CONFIG.SUPABASE_URL||CONFIG.SUPABASE_ANON_KEY.startsWith('PEGAR');
+
+/* ====== utilidades ====== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtCLP=new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0});
+const clp=n=>fmtCLP.format(Math.round(+n||0));
+const hoy=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date());
+const fFecha=d=>{if(!d)return'';const [y,m,dd]=String(d).slice(0,10).split('-');return `${dd}-${m}-${y}`};
+const mesDe=d=>String(d||'').slice(0,7);
+const nomMes=m=>{try{const s=new Date(m+'-15T12:00:00').toLocaleDateString('es-CL',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)}catch(e){return m}};
+const sumar=(a,f)=>a.reduce((s,x)=>s+(+f(x)||0),0);
+const opt=(v,t,sel)=>`<option value="${esc(v)}" ${String(v)===String(sel??'')?'selected':''}>${esc(t)}</option>`;
+const vacio=t=>`<div class="vacio">${esc(t)}</div>`;
+const ordFecha=k=>(a,b)=>a[k]<b[k]?1:a[k]>b[k]?-1:(b.id>a.id?1:-1);
+const extDe=f=>f.type==='application/pdf'?'pdf':((f.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace(/[^a-z0-9]/g,'')||'jpg');
+
+function toast(msg,tipo){const t=$('#toast');t.textContent=msg;t.className='toast show '+(tipo||'');clearTimeout(toast._t);toast._t=setTimeout(()=>{t.className='toast'},4200)}
+function abrirModal(html){const mb=$('#modalBody');mb.onclick=null;mb.onsubmit=null;mb.innerHTML=html;$('#modal').hidden=false;document.body.classList.add('lock');const f=mb.querySelector('input:not([type=checkbox]),select,textarea,button');f&&f.focus()}
+function cerrarModal(){$('#modal').hidden=true;$('#modalBody').innerHTML='';document.body.classList.remove('lock')}
+function confirmar(msg,ok='Confirmar'){return new Promise(res=>{abrirModal(`<h3>Confirmar</h3><p>${esc(msg)}</p><div class="acts"><button class="btn ghost" data-c="0">Cancelar</button><button class="btn" data-c="1">${esc(ok)}</button></div>`);$('#modalBody').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;cerrarModal();res(b.dataset.c==='1')}})}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden)cerrarModal()});
+
+async function comprimir(file){
+  if(!file||!file.type.startsWith('image/')||file.type==='image/gif')return file;
+  try{const bmp=await createImageBitmap(file);const s=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas');c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.78));
+    return b&&b.size<file.size?new File([b],'boleta.jpg',{type:'image/jpeg'}):file}catch(e){return file}
+}
+const aDataURL=f=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=ko;r.readAsDataURL(f)});
+
+const ERR={YA_EXISTE:'Ya hay una boleta de ese ítem para ese día. Si es un caso especial, pide al administrador que te habilite otra.',
+FECHA_FUTURA:'La fecha de la boleta no puede ser futura.',CATEGORIA_INVALIDA:'Ese ítem no existe o está desactivado.',
+NO_AUTORIZADO:'No tienes permiso para esta acción.',BOLETAS_INVALIDAS:'Algunas boletas ya no están pendientes. Actualiza e intenta de nuevo.',
+MONTO_CERO:'El pago debe ser mayor a $0.',USUARIO_INACTIVO:'Tu usuario está desactivado. Habla con el administrador.',
+CREDENCIALES:'Usuario o clave incorrectos.',USUARIO_EXISTE:'Ese nombre de usuario ya existe.',CLAVE_CORTA:'La clave debe tener al menos 6 caracteres.',
+AUTO:'No puedes desactivarte ni quitarte el rol de administrador a ti mismo.',HAB_USADA:'Esa habilitación ya se usó.'};
+function msgErr(e){const m=String(e?.message||e||'');for(const k in ERR)if(m.includes(k))return ERR[k];if(/Invalid login/i.test(m))return ERR.CREDENCIALES;if(/already registered/i.test(m))return ERR.USUARIO_EXISTE;if(/Failed to fetch|NetworkError/i.test(m))return 'Sin conexión. Revisa tu internet e intenta de nuevo.';return m||'Ocurrió un error.'}
+
+/* ====== backend Supabase ====== */
+function SupaAPI(){
+  const sb=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+  const correo=u=>`${String(u).trim().toLowerCase()}@${CONFIG.DOMINIO}`;
+  const chk=({data,error})=>{if(error)throw error;return data};
+  let uid=null;
+  const perfil=async id=>chk(await sb.from('profiles').select('*').eq('id',id).single());
+  const campos=d=>({p_nombre:d.nombre||'',p_rol:d.rol||'tecnico',p_rut:d.rut||null,p_telefono:d.telefono||null,p_banco:d.banco||null,p_tipo_cuenta:d.tipo_cuenta||null,p_numero_cuenta:d.numero_cuenta||null,p_email_pago:d.email_pago||null});
+  return {
+    async sesion(){const {data}=await sb.auth.getSession();const u=data.session?.user;if(!u)return null;uid=u.id;const p=await perfil(u.id).catch(()=>null);if(!p||!p.activo){await sb.auth.signOut();return null}return p},
+    async login(u,c){const r=await sb.auth.signInWithPassword({email:correo(u),password:c});if(r.error)throw new Error('CREDENCIALES');uid=r.data.user.id;const p=await perfil(uid);if(!p.activo){await sb.auth.signOut();throw new Error('USUARIO_INACTIVO')}return p},
+    async logout(){await sb.auth.signOut()},
+    async categorias(){return chk(await sb.from('categorias').select('*').order('orden'))},
+    async guardarCategoria(cod,c){const d=chk(await sb.from('categorias').update(c).eq('codigo',cod).select());if(!d.length)throw new Error('NO_AUTORIZADO')},
+    async boletas(){return chk(await sb.from('boletas').select('*').order('fecha',{ascending:false}).order('id',{ascending:false}).limit(10000))},
+    async crearBoleta(d,file){const f=await comprimir(file);const path=`${uid}/${Date.now()}.${extDe(f)}`;
+      chk(await sb.storage.from('boletas').upload(path,f,{contentType:f.type||'application/octet-stream'}));
+      const r=await sb.from('boletas').insert({...d,tecnico_id:uid,foto_path:path}).select().single();
+      if(r.error){await sb.storage.from('boletas').remove([path]);throw r.error}return r.data},
+    async eliminarBoleta(b){const d=chk(await sb.from('boletas').delete().eq('id',b.id).select());if(!d.length)throw new Error('NO_AUTORIZADO');await sb.storage.from('boletas').remove([b.foto_path])},
+    async ajustarBoleta(id,c){const d=chk(await sb.from('boletas').update(c).eq('id',id).select());if(!d.length)throw new Error('NO_AUTORIZADO')},
+    async pagos(){return chk(await sb.from('pagos').select('*').order('fecha_pago',{ascending:false}).order('id',{ascending:false}))},
+    async registrarPago(tec,ids,fecha,nota,file){const f=await comprimir(file);const path=`${tec}/${Date.now()}.${extDe(f)}`;
+      chk(await sb.storage.from('comprobantes').upload(path,f,{contentType:f.type||'application/octet-stream'}));
+      const r=await sb.rpc('registrar_pago',{p_tecnico:tec,p_boletas:ids,p_fecha:fecha,p_comprobante:path,p_nota:nota||null});
+      if(r.error){await sb.storage.from('comprobantes').remove([path]);throw r.error}return r.data},
+    async url(bucket,path){const d=chk(await sb.storage.from(bucket).createSignedUrl(path,900));return d.signedUrl},
+    async usuarios(){return chk(await sb.from('profiles').select('*').order('nombre'))},
+    async crearUsuario(d){
+      const ex=chk(await sb.from('profiles').select('id').eq('usuario',d.usuario));if(ex.length)throw new Error('USUARIO_EXISTE');
+      const tmp=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'click-alta-tmp'}});
+      const r=await tmp.auth.signUp({email:correo(d.usuario),password:d.clave,options:{data:{usuario:d.usuario,nombre:d.nombre}}});
+      if(r.error)throw r.error;const u=r.data.user;if(!u||(u.identities&&u.identities.length===0))throw new Error('USUARIO_EXISTE');
+      chk(await sb.rpc('admin_configurar_usuario',{p_id:u.id,...campos(d),p_activo:true}))},
+    async actualizarUsuario(id,d){chk(await sb.rpc('admin_configurar_usuario',{p_id:id,...campos(d),p_activo:!!d.activo}))},
+    async cambiarClave(id,c){chk(await sb.rpc('admin_cambiar_clave',{p_id:id,p_clave:c}))},
+    async cambiarMiClave(c){chk(await sb.auth.updateUser({password:c}))},
+    async misDatos(d){chk(await sb.rpc('actualizar_mis_datos',{p_rut:d.rut,p_telefono:d.telefono,p_banco:d.banco,p_tipo_cuenta:d.tipo_cuenta,p_numero_cuenta:d.numero_cuenta,p_email_pago:d.email_pago}))},
+    async habilitaciones(){return chk(await sb.from('habilitaciones').select('*').order('fecha',{ascending:false}).order('id',{ascending:false}))},
+    async crearHabilitacion(d){chk(await sb.from('habilitaciones').insert({...d,creado_por:uid}))},
+    async eliminarHabilitacion(id){const d=chk(await sb.from('habilitaciones').delete().eq('id',id).eq('usada',false).select());if(!d.length)throw new Error('HAB_USADA')}
+  };
+}
+
+/* ====== backend de demostración (localStorage) ====== */
+function semilla(){
+  return {seq:0,
+    users:[{id:'u1',usuario:'admin',clave:'admin123',nombre:'Administrador',rol:'admin',activo:true}],
+    cats:[{codigo:'desayuno',nombre:'Desayuno',tope:5000,orden:1,activo:true},{codigo:'almuerzo',nombre:'Almuerzo',tope:8000,orden:2,activo:true},{codigo:'cena',nombre:'Cena',tope:8000,orden:3,activo:true},{codigo:'hidratacion',nombre:'Hidratación',tope:2000,orden:4,activo:true}],
+    pagos:[],boletas:[],habs:[]};
+}
+function DemoAPI(){
+  const K='click_rendiciones_demo_v2';
+  let db=null;try{db=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+  if(!db||!db.users)db=semilla();
+  const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch(e){toast('Modo demo: este navegador no permitió guardar.','err')}};
+  save();
+  let uid=null;try{uid=sessionStorage.getItem(K+'_s')}catch(e){}
+  const setS=v=>{uid=v;try{v?sessionStorage.setItem(K+'_s',v):sessionStorage.removeItem(K+'_s')}catch(e){}};
+  const yo=()=>db.users.find(u=>u.id===uid);
+  const adm=()=>{const u=yo();return !!u&&u.rol==='admin'&&u.activo};
+  const pub=u=>{const r={...u};delete r.clave;return r};
+  const req=c=>{if(!c)throw new Error('NO_AUTORIZADO')};
+  const cp=o=>JSON.parse(JSON.stringify(o));
+  const BANCO=['rut','telefono','banco','tipo_cuenta','numero_cuenta','email_pago'];
+  const archivo=async file=>{const f=await comprimir(file);if(f.size>2.5e6)throw new Error('En modo demo el archivo debe pesar menos de 2,5 MB.');return aDataURL(f)};
+  return {
+    async sesion(){const u=yo();return u&&u.activo?pub(u):null},
+    async login(us,c){const u=db.users.find(x=>x.usuario===String(us).trim().toLowerCase()&&x.clave===c);if(!u)throw new Error('CREDENCIALES');if(!u.activo)throw new Error('USUARIO_INACTIVO');setS(u.id);return pub(u)},
+    async logout(){setS(null)},
+    async categorias(){return cp(db.cats).sort((a,b)=>a.orden-b.orden)},
+    async guardarCategoria(cod,c){req(adm());Object.assign(db.cats.find(x=>x.codigo===cod),c);save()},
+    async boletas(){return cp(db.boletas.filter(b=>adm()||b.tecnico_id===uid)).sort(ordFecha('fecha'))},
+    async crearBoleta(d,file){const u=yo();if(!u||!u.activo)throw new Error('USUARIO_INACTIVO');
+      const cat=db.cats.find(c=>c.codigo===d.categoria&&c.activo);if(!cat)throw new Error('CATEGORIA_INVALIDA');
+      if(d.fecha>hoy())throw new Error('FECHA_FUTURA');
+      const b={...d,tecnico_id:u.id,tope_aplicado:cat.tope,monto_aprobado:Math.min(d.monto_boleta,cat.tope),estado:'pendiente',extra:false,pago_id:null,habilitacion_id:null,motivo_admin:null,created_at:new Date().toISOString()};
+      let h=null;
+      if(db.boletas.some(x=>x.tecnico_id===u.id&&x.fecha===d.fecha&&x.categoria===d.categoria&&x.estado!=='rechazada')){
+        h=db.habs.filter(x=>x.tecnico_id===u.id&&x.fecha===d.fecha&&!x.usada&&(!x.categoria||x.categoria===d.categoria)).sort((a,c)=>(a.categoria?0:1)-(c.categoria?0:1))[0];
+        if(!h)throw new Error('YA_EXISTE');b.extra=true;b.habilitacion_id=h.id}
+      b.foto_path=await archivo(file);b.id=++db.seq;if(h)h.usada=true;db.boletas.push(b);save();return cp(b)},
+    async eliminarBoleta(b){const x=db.boletas.find(y=>y.id===b.id);req(x&&((x.tecnico_id===uid&&x.estado==='pendiente')||(adm()&&x.estado!=='pagada')));
+      if(x.habilitacion_id){const h=db.habs.find(y=>y.id===x.habilitacion_id);if(h)h.usada=false}db.boletas=db.boletas.filter(y=>y.id!==b.id);save()},
+    async ajustarBoleta(id,c){req(adm());const x=db.boletas.find(y=>y.id===id);req(x&&x.estado!=='pagada');Object.assign(x,c);save()},
+    async pagos(){return cp(db.pagos.filter(p=>adm()||p.tecnico_id===uid)).sort(ordFecha('fecha_pago'))},
+    async registrarPago(tec,ids,fecha,nota,file){req(adm());const bs=db.boletas.filter(b=>ids.includes(b.id)&&b.tecnico_id===tec&&b.estado==='pendiente');
+      if(!bs.length||bs.length!==ids.length)throw new Error('BOLETAS_INVALIDAS');const monto=sumar(bs,b=>b.monto_aprobado);if(monto<=0)throw new Error('MONTO_CERO');
+      const p={tecnico_id:tec,monto,fecha_pago:fecha,comprobante_path:await archivo(file),nota:nota||null,creado_por:uid,created_at:new Date().toISOString()};
+      p.id=++db.seq;db.pagos.push(p);bs.forEach(b=>{b.estado='pagada';b.pago_id=p.id});save();return p.id},
+    async url(bucket,path){return path},
+    async usuarios(){req(adm());return db.users.map(pub).sort((a,b)=>a.nombre.localeCompare(b.nombre))},
+    async crearUsuario(d){req(adm());if(db.users.some(u=>u.usuario===d.usuario))throw new Error('USUARIO_EXISTE');
+      const u={id:'u'+(++db.seq),usuario:d.usuario,clave:d.clave,nombre:d.nombre,rol:d.rol,activo:true};BANCO.forEach(k=>u[k]=d[k]||null);db.users.push(u);save()},
+    async actualizarUsuario(id,d){req(adm());if(id===uid&&(!d.activo||d.rol!=='admin'))throw new Error('AUTO');const u=db.users.find(x=>x.id===id);req(u);
+      Object.assign(u,{nombre:d.nombre,rol:d.rol,activo:!!d.activo});BANCO.forEach(k=>u[k]=d[k]||null);save()},
+    async cambiarClave(id,c){req(adm());if(String(c).length<6)throw new Error('CLAVE_CORTA');db.users.find(x=>x.id===id).clave=c;save()},
+    async cambiarMiClave(c){yo().clave=c;save()},
+    async misDatos(d){const u=yo();BANCO.forEach(k=>u[k]=d[k]||null);save()},
+    async habilitaciones(){return cp(db.habs.filter(h=>adm()||h.tecnico_id===uid)).sort(ordFecha('fecha'))},
+    async crearHabilitacion(d){req(adm());db.habs.push({...d,id:++db.seq,usada:false,creado_por:uid,created_at:new Date().toISOString()});save()},
+    async eliminarHabilitacion(id){req(adm());const h=db.habs.find(x=>x.id===id);if(!h||h.usada)throw new Error('HAB_USADA');db.habs=db.habs.filter(x=>x.id!==id);save()}
+  };
+}
+
+/* ====== estado ====== */
+const api=DEMO?DemoAPI():(window.supabase?SupaAPI():null);
+const S={me:null,cats:[],boletas:[],pagos:[],habs:[],users:[],tab:null,f:{tec:'',estado:'pendiente',mes:'',cat:''},mesTec:'',fb:null};
+const ESTADOS={pendiente:'Por pagar',rechazada:'Rechazada',pagada:'Pagada'};
+const badge=e=>`<span class="badge b-${esc(e)}">${esc(ESTADOS[e]||e)}</span>`;
+const nombreDe=id=>{const u=S.users.find(x=>x.id===id);return u?(u.nombre||u.usuario):'—'};
+const catDe=c=>S.cats.find(x=>x.codigo===c)?.nombre||c;
+const pendientesDe=id=>S.boletas.filter(b=>b.tecnico_id===id&&b.estado==='pendiente');
+const app=$('#app');
+
+async function cargar(){
+  const [cats,boletas,pagos,habs]=await Promise.all([api.categorias(),api.boletas(),api.pagos(),api.habilitaciones()]);
+  Object.assign(S,{cats,boletas,pagos,habs});
+  if(S.me.rol==='admin'){S.users=await api.usuarios();S.me=S.users.find(u=>u.id===S.me.id)||S.me}else S.users=[S.me];
+}
+async function refrescar(msg){try{await cargar()}catch(e){toast(msgErr(e),'err')}render();if(msg)toast(msg,'ok')}
+function estadoDia(tec,fecha){return S.cats.filter(c=>c.activo).map(c=>{
+  const bs=S.boletas.filter(b=>b.tecnico_id===tec&&b.fecha===fecha&&b.categoria===c.codigo&&b.estado!=='rechazada');
+  const hs=S.habs.filter(h=>h.tecnico_id===tec&&h.fecha===fecha&&!h.usada&&(!h.categoria||h.categoria===c.codigo));
+  return {c,bs,libre:!bs.length||hs.length>0,extra:bs.length>0&&hs.length>0}})}
+
+/* ====== vistas comunes ====== */
+function header(){return `<header class="top"><div class="brand"><b>Click Solutions</b><span>Rendición de alimentación</span></div><div class="who"><span>${esc(S.me.nombre||S.me.usuario)}</span><small>${S.me.rol==='admin'?'Administrador':'Técnico'}</small></div><button class="btn ghost sm" data-act="recargar" title="Actualizar datos">Actualizar</button><button class="btn ghost sm" data-act="salir">Salir</button></header>${DEMO?'<div class="demo">Modo demostración: los datos quedan solo en este navegador. Entra como <b>admin / admin123</b> y crea tus técnicos en Usuarios.</div>':''}`}
+function tabs(list){return `<nav class="tabs scroll" role="tablist">${list.map(([k,t])=>`<button role="tab" aria-selected="${S.tab===k}" data-tab="${k}">${t}</button>`).join('')}</nav>`}
+function vistaLogin(){
+  const T=S.cats.length?S.cats:[{nombre:'Desayuno',tope:5000},{nombre:'Almuerzo',tope:8000},{nombre:'Cena',tope:8000},{nombre:'Hidratación',tope:2000}];
+  return `<main class="login"><section class="izq"><div class="lbl">Click Solutions <span>Rendición de alimentación</span></div>
+  <div class="aviso" role="note"><b>Aviso</b><p>Suban las boletas o no les pago.</p><span>Atte. Matías, su mejor jefe</span></div>
+  <h1>Sube tu boleta y queda lista para reembolso</h1><p class="muted">Una foto, el monto y listo. El administrador ve lo que se te debe y te avisa con el comprobante cuando transfiere.</p>
+  <form id="fLogin" class="col narrow"><label>Usuario<input name="u" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+  <label>Clave<input name="c" type="password" autocomplete="current-password" required></label><button class="btn big">Ingresar</button></form>
+  ${DEMO?'<p class="muted">Modo demostración. Entra con <b>admin / admin123</b>.</p>':''}</section>
+  <aside class="der"><h2 style="margin:0">Máximo por boleta</h2><div class="etq"><div><span>Ítem</span><span>Tope diario</span></div>${T.map(c=>`<div><span>${esc(c.nombre)}</span><b>${clp(c.tope)}</b></div>`).join('')}</div>
+  <p>Una boleta por ítem al día. Si la boleta supera el tope, se reembolsa solo el máximo.</p></aside></main>`}
+
+/* ====== técnico ====== */
+function vistaTec(){
+  S.tab=S.tab||'nueva';const me=S.me,pend=pendientesDe(me.id),tot=sumar(pend,b=>b.monto_aprobado);
+  const ult=S.pagos.find(p=>p.tecnico_id===me.id);const dia=estadoDia(me.id,hoy());
+  const C={nueva:formBoleta,boletas:misBoletas,pagos:misPagos,datos:misDatos};
+  return header()+`<section class="hero"><div class="saldo"><span>Por reembolsar</span><strong>${clp(tot)}</strong><small>${pend.length} boleta${pend.length===1?'':'s'} pendiente${pend.length===1?'':'s'}${ult?` · último pago ${clp(ult.monto)} el ${fFecha(ult.fecha_pago)}`:''}</small></div>
+  <div class="hoy"><span class="h">Hoy, ${fFecha(hoy())}</span><ul>${dia.map(x=>`<li class="${x.bs.length&&!x.extra?'usado':''}"><b>${esc(x.c.nombre)}</b><span>${x.bs.length?(x.extra?'Boleta extra habilitada':'Rendido '+clp(sumar(x.bs,b=>b.monto_aprobado))):'Disponible · máx. '+clp(x.c.tope)}</span></li>`).join('')}</ul></div></section>`
+  +tabs([['nueva','Nueva boleta'],['boletas','Mis boletas'],['pagos','Mis pagos'],['datos','Mis datos']])+`<main class="band">${(C[S.tab]||formBoleta)()}</main>`}
+function catsHTML(){const f=S.fb;const dia=estadoDia(S.me.id,f.fecha);if(f.categoria&&!dia.some(x=>x.c.codigo===f.categoria&&x.libre))f.categoria='';
+  return `<fieldset class="cats"><legend>¿Qué estás rindiendo?</legend>${dia.map(x=>`<label class="cat ${x.libre?'':'off'}"><input type="radio" name="categoria" value="${esc(x.c.codigo)}" ${f.categoria===x.c.codigo?'checked':''} ${x.libre?'':'disabled'} required><b>${esc(x.c.nombre)}</b><span>${x.libre?(x.extra?'Extra habilitada':'Máx. '+clp(x.c.tope)):'Ya rendido ese día'}</span></label>`).join('')}</fieldset>`}
+function formBoleta(){const f=S.fb||(S.fb={fecha:hoy(),categoria:''});
+  return `<form id="fBoleta" class="col form-boleta" autocomplete="off">${catsHTML()}
+  <div class="row2"><label>Fecha de la boleta<input type="date" name="fecha" value="${esc(f.fecha)}" max="${hoy()}" required></label>
+  <label>Monto total de la boleta ($)<input type="number" name="monto_boleta" inputmode="numeric" min="1" step="1" placeholder="Ej: 8500" required value="${esc(f.monto_boleta||'')}"></label></div>
+  <p class="calc" id="calc" aria-live="polite"></p>
+  <div class="row2"><label>Local o comercio<input name="comercio" maxlength="80" placeholder="Ej: Restaurante El Paso" value="${esc(f.comercio||'')}"></label>
+  <label>N° de boleta <small class="muted">(opcional)</small><input name="numero_boleta" maxlength="30" inputmode="numeric" value="${esc(f.numero_boleta||'')}"></label></div>
+  <label>Obra o cliente<input name="obra" maxlength="80" placeholder="¿En qué trabajo estabas?" value="${esc(f.obra||'')}"></label>
+  <label>Foto de la boleta<input type="file" name="foto" accept="image/*,application/pdf" required></label><div id="prev" class="prev"></div>
+  <label>Comentario <small class="muted">(opcional)</small><textarea name="observacion" rows="2" maxlength="300">${esc(f.observacion||'')}</textarea></label>
+  <button class="btn big" id="btnEnviar">Enviar boleta</button></form>`}
+function guardarFB(fm){['fecha','monto_boleta','comercio','numero_boleta','obra','observacion'].forEach(k=>S.fb[k]=fm[k].value);S.fb.categoria=fm.querySelector('[name=categoria]:checked')?.value||''}
+function actualizarCalc(){const fm=$('#fBoleta'),el=$('#calc');if(!fm||!el)return;const m=Math.round(+fm.monto_boleta.value||0);const c=S.cats.find(x=>x.codigo===fm.querySelector('[name=categoria]:checked')?.value);
+  if(!c||!m){el.textContent='';el.className='calc';return}const r=Math.min(m,c.tope);
+  el.className='calc '+(m>c.tope?'warn':'ok');el.textContent=m>c.tope?`Se reembolsarán ${clp(r)}: la boleta supera el máximo de ${c.nombre} por ${clp(m-c.tope)}.`:`Se reembolsarán ${clp(r)}.`}
+function preview(file){const p=$('#prev');if(!p)return;if(!file){p.innerHTML='';return}
+  if(file.type.startsWith('image/')){const u=URL.createObjectURL(file);p.innerHTML=`<img src="${esc(u)}" alt="Vista previa de la boleta">`}else p.innerHTML=`<span class="muted">Adjunto: ${esc(file.name)}</span>`}
+async function enviarBoleta(fm){
+  const file=fm.foto.files[0];const cat=fm.querySelector('[name=categoria]:checked');
+  if(!cat)return toast('Elige qué estás rindiendo.','err');if(!file)return toast('Adjunta la foto de la boleta.','err');
+  const d={categoria:cat.value,fecha:fm.fecha.value,monto_boleta:Math.round(+fm.monto_boleta.value),comercio:fm.comercio.value.trim()||null,numero_boleta:fm.numero_boleta.value.trim()||null,obra:fm.obra.value.trim()||null,observacion:fm.observacion.value.trim()||null};
+  if(!(d.monto_boleta>0))return toast('Ingresa el monto de la boleta.','err');
+  if(d.numero_boleta&&S.boletas.some(b=>b.numero_boleta===d.numero_boleta&&(b.comercio||'').toLowerCase()===(d.comercio||'').toLowerCase()&&b.estado!=='rechazada')){
+    if(!await confirmar('Ya rendiste una boleta con ese número en ese local. ¿Enviarla igual?','Enviar igual'))return}
+  const btn=$('#btnEnviar');btn.disabled=true;btn.textContent='Enviando…';
+  try{const b=await api.crearBoleta(d,file);S.fb={fecha:hoy(),categoria:''};await refrescar('Boleta enviada. Se te reembolsarán '+clp(b.monto_aprobado)+'.')}
+  catch(e){toast(msgErr(e),'err');btn.disabled=false;btn.textContent='Enviar boleta'}}
+function misBoletas(){const mes=S.mesTec;const todas=S.boletas.filter(b=>b.tecnico_id===S.me.id);const bs=todas.filter(b=>!mes||mesDe(b.fecha)===mes);
+  const meses=[...new Set(todas.map(b=>mesDe(b.fecha)))].sort().reverse();
+  return `<div class="bar"><label class="inl">Mes<select data-f="mesTec"><option value="">Todos</option>${meses.map(m=>opt(m,nomMes(m),mes)).join('')}</select></label><span class="muted">${bs.length} boleta${bs.length===1?'':'s'} · ${clp(sumar(bs.filter(b=>b.estado!=='rechazada'),b=>b.monto_aprobado))} rendido</span></div>
+  ${bs.length?`<ul class="cards">${bs.map(b=>`<li class="card"><div class="c1"><b>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</b><span class="muted">${fFecha(b.fecha)}${b.comercio?' · '+esc(b.comercio):''}${b.obra?' · '+esc(b.obra):''}</span></div>
+  <div class="c2"><span class="num">${clp(b.monto_aprobado)}</span>${b.monto_boleta!==b.monto_aprobado?`<small class="muted num">boleta ${clp(b.monto_boleta)}</small>`:''}${badge(b.estado)}</div>
+  ${b.motivo_admin?`<p class="nota">Administrador: ${esc(b.motivo_admin)}</p>`:''}<div class="c3"><button class="btn ghost sm" data-act="verB" data-id="${esc(b.id)}">Ver foto</button>${b.pago_id?`<button class="btn ghost sm" data-act="verP" data-id="${esc(b.pago_id)}">Ver comprobante</button>`:''}${b.estado==='pendiente'?`<button class="btn ghost sm danger" data-act="delB" data-id="${esc(b.id)}">Eliminar</button>`:''}</div></li>`).join('')}</ul>`:vacio('No tienes boletas en este período.')}`}
+function misPagos(){const ps=S.pagos.filter(p=>p.tecnico_id===S.me.id);
+  return ps.length?`<ul class="cards">${ps.map(p=>{const bs=S.boletas.filter(b=>b.pago_id===p.id);return `<li class="card"><div class="c1"><b>Transferencia del ${fFecha(p.fecha_pago)}</b><span class="muted">${bs.length} boleta${bs.length===1?'':'s'}${p.nota?' · '+esc(p.nota):''}</span></div><div class="c2"><span class="num">${clp(p.monto)}</span>${badge('pagada')}</div>
+  <details><summary>Boletas incluidas</summary><ul class="mini">${bs.map(b=>`<li><span>${fFecha(b.fecha)} · ${esc(catDe(b.categoria))}</span><span class="num">${clp(b.monto_aprobado)}</span></li>`).join('')}</ul></details>
+  <div class="c3"><button class="btn sm" data-act="verP" data-id="${esc(p.id)}">Ver comprobante</button></div></li>`}).join('')}</ul>`:vacio('Todavía no tienes pagos registrados.')}
+function camposBanco(u){return `<div class="row2"><label>RUT<input name="rut" value="${esc(u.rut||'')}" maxlength="12" placeholder="12.345.678-9"></label><label>Teléfono<input name="telefono" value="${esc(u.telefono||'')}" maxlength="20" inputmode="tel"></label></div>
+  <div class="row2"><label>Banco<input name="banco" value="${esc(u.banco||'')}" maxlength="40" list="bancos"></label><label>Tipo de cuenta<select name="tipo_cuenta">${['','Cuenta RUT','Cuenta vista','Cuenta corriente','Cuenta de ahorro'].map(t=>opt(t,t||'—',u.tipo_cuenta||'')).join('')}</select></label></div>
+  <div class="row2"><label>N° de cuenta<input name="numero_cuenta" value="${esc(u.numero_cuenta||'')}" maxlength="30"></label><label>Correo para la transferencia<input type="email" name="email_pago" value="${esc(u.email_pago||'')}" maxlength="80"></label></div>`}
+const leerBanco=fm=>({rut:fm.rut.value.trim()||null,telefono:fm.telefono.value.trim()||null,banco:fm.banco.value.trim()||null,tipo_cuenta:fm.tipo_cuenta.value||null,numero_cuenta:fm.numero_cuenta.value.trim()||null,email_pago:fm.email_pago.value.trim()||null});
+function misDatos(){return `<div class="split"><form id="fDatos" class="col"><h3>Datos para tu transferencia</h3><p class="muted">El administrador los ve al pagarte.</p>${camposBanco(S.me)}<button class="btn">Guardar datos</button></form>
+  <form id="fClave" class="col box"><h3>Cambiar mi clave</h3><label>Clave nueva<input type="password" name="c1" minlength="6" autocomplete="new-password" required></label><label>Repetir clave<input type="password" name="c2" minlength="6" autocomplete="new-password" required></label><button class="btn">Cambiar clave</button><p class="muted">Usuario: <code>${esc(S.me.usuario)}</code></p></form></div>`}
+
+/* ====== administrador ====== */
+function vistaAdm(){S.tab=S.tab||'resumen';const C={resumen:admResumen,boletas:admBoletas,pagos:admPagos,usuarios:admUsuarios,habs:admHabs,topes:admTopes};
+  const n=S.boletas.filter(b=>b.estado==='pendiente').length;
+  return header()+tabs([['resumen','Resumen'],['boletas',`Boletas${n?' ('+n+')':''}`],['pagos','Pagos'],['usuarios','Usuarios'],['habs','Habilitaciones'],['topes','Topes']])+`<main class="band">${(C[S.tab]||admResumen)()}</main>`}
+function admResumen(){const tecs=S.users.filter(u=>u.rol==='tecnico');const pend=S.boletas.filter(b=>b.estado==='pendiente');const mes=hoy().slice(0,7);const pagMes=S.pagos.filter(p=>mesDe(p.fecha_pago)===mes);
+  const filas=S.users.map(u=>{const p=pendientesDe(u.id);return {u,p,t:sumar(p,b=>b.monto_aprobado),ul:S.pagos.find(x=>x.tecnico_id===u.id)}}).filter(x=>x.u.rol==='tecnico'||x.p.length).sort((a,b)=>b.t-a.t||(a.u.nombre||'').localeCompare(b.u.nombre||''));
+  return `<section class="kpis"><div class="kpi main"><span>Total por reembolsar</span><strong>${clp(sumar(pend,b=>b.monto_aprobado))}</strong><small>${pend.length} boleta${pend.length===1?'':'s'} pendiente${pend.length===1?'':'s'}</small></div>
+  <div class="kpi"><span>Pagado en ${esc(nomMes(mes).split(' ')[0].toLowerCase())}</span><strong>${clp(sumar(pagMes,p=>p.monto))}</strong><small>${pagMes.length} transferencia${pagMes.length===1?'':'s'}</small></div>
+  <div class="kpi"><span>Rendido este mes</span><strong>${clp(sumar(S.boletas.filter(b=>mesDe(b.fecha)===mes&&b.estado!=='rechazada'),b=>b.monto_aprobado))}</strong><small>con topes aplicados</small></div>
+  <div class="kpi"><span>Técnicos activos</span><strong>${tecs.filter(u=>u.activo).length}</strong><small>${tecs.filter(u=>!u.activo).length} desactivado${tecs.filter(u=>!u.activo).length===1?'':'s'}</small></div></section>
+  <h2>Lo que se le debe a cada técnico</h2>
+  <table class="t stack"><thead><tr><th>Técnico</th><th class="r">Boletas</th><th class="r">Por pagar</th><th>Último pago</th><th></th></tr></thead><tbody>${filas.map(x=>`<tr class="${x.u.activo?'':'dim'}"><td><b>${esc(x.u.nombre||x.u.usuario)}</b>${x.u.activo?'':'<span class="tag">Desactivado</span>'}</td><td class="r">${x.p.length}</td><td class="r num"><b>${clp(x.t)}</b></td><td>${x.ul?`<span class="num">${clp(x.ul.monto)}</span> · ${fFecha(x.ul.fecha_pago)}`:'—'}</td>
+  <td><div class="acts-cell"><button class="btn ghost sm" data-act="verTec" data-id="${esc(x.u.id)}">Ver boletas</button><button class="btn sm" data-act="pagar" data-id="${esc(x.u.id)}" ${x.t>0?'':'disabled'}>Registrar pago</button></div></td></tr>`).join('')||`<tr><td colspan="5">${vacio('Aún no hay técnicos. Créalos en Usuarios.')}</td></tr>`}</tbody></table>`}
+function filtrarBoletas(){const f=S.f;return S.boletas.filter(b=>(!f.tec||b.tecnico_id===f.tec)&&(!f.estado||b.estado===f.estado)&&(!f.mes||mesDe(b.fecha)===f.mes)&&(!f.cat||b.categoria===f.cat))}
+function selTec(){return `<label>Técnico<select data-f="tec"><option value="">Todos</option>${S.users.map(u=>opt(u.id,u.nombre||u.usuario,S.f.tec)).join('')}</select></label>`}
+function admBoletas(){const bs=filtrarBoletas(),f=S.f;const meses=[...new Set(S.boletas.map(b=>mesDe(b.fecha)))].sort().reverse();
+  return `<div class="filters">${selTec()}<label>Estado<select data-f="estado"><option value="">Todos</option>${Object.entries(ESTADOS).map(([k,v])=>opt(k,v,f.estado)).join('')}</select></label>
+  <label>Mes<select data-f="mes"><option value="">Todos</option>${meses.map(m=>opt(m,nomMes(m),f.mes)).join('')}</select></label><label>Ítem<select data-f="cat"><option value="">Todos</option>${S.cats.map(c=>opt(c.codigo,c.nombre,f.cat)).join('')}</select></label>
+  <button class="btn ghost sm" data-act="csvB">Exportar a Excel (CSV)</button></div>
+  <p class="muted">${bs.length} boleta${bs.length===1?'':'s'} · montos de boleta ${clp(sumar(bs,b=>b.monto_boleta))} · a reembolsar ${clp(sumar(bs.filter(b=>b.estado!=='rechazada'),b=>b.monto_aprobado))}</p>
+  <table class="t stack"><thead><tr><th>Fecha</th><th>Técnico</th><th>Ítem</th><th>Local / obra</th><th class="r">Boleta</th><th class="r">Reembolso</th><th>Estado</th><th></th></tr></thead><tbody>${bs.map(b=>`<tr><td class="nw">${fFecha(b.fecha)}</td><td>${esc(nombreDe(b.tecnico_id))}</td><td>${esc(catDe(b.categoria))}${b.extra?'<span class="tag">Extra</span>':''}</td>
+  <td>${esc(b.comercio||'—')}${b.obra?`<br><small class="muted">${esc(b.obra)}</small>`:''}</td><td class="r num">${clp(b.monto_boleta)}</td><td class="r num"><b>${clp(b.monto_aprobado)}</b>${b.monto_boleta>b.monto_aprobado&&b.estado!=='rechazada'?'<br><small class="muted">tope aplicado</small>':''}</td><td>${badge(b.estado)}</td>
+  <td><div class="acts-cell"><button class="btn ghost sm" data-act="verB" data-id="${esc(b.id)}">Foto</button>${b.estado!=='pagada'?`<button class="btn ghost sm" data-act="ajustar" data-id="${esc(b.id)}">Revisar</button>`:''}</div></td></tr>`).join('')||`<tr><td colspan="8">${vacio('No hay boletas con estos filtros.')}</td></tr>`}</tbody></table>`}
+function admPagos(){const ps=S.pagos.filter(p=>!S.f.tec||p.tecnico_id===S.f.tec);
+  return `<div class="filters">${selTec()}<button class="btn ghost sm" data-act="csvP">Exportar a Excel (CSV)</button></div><p class="muted">${ps.length} pago${ps.length===1?'':'s'} · ${clp(sumar(ps,p=>p.monto))}</p>
+  <table class="t stack"><thead><tr><th>Fecha</th><th>Técnico</th><th class="r">Monto</th><th class="r">Boletas</th><th>Nota</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td class="nw">${fFecha(p.fecha_pago)}</td><td>${esc(nombreDe(p.tecnico_id))}</td><td class="r num"><b>${clp(p.monto)}</b></td><td class="r">${S.boletas.filter(b=>b.pago_id===p.id).length}</td><td>${esc(p.nota||'')}</td>
+  <td><div class="acts-cell"><button class="btn ghost sm" data-act="verP" data-id="${esc(p.id)}">Comprobante</button><button class="btn ghost sm" data-act="detP" data-id="${esc(p.id)}">Detalle</button></div></td></tr>`).join('')||`<tr><td colspan="6">${vacio('Sin pagos registrados.')}</td></tr>`}</tbody></table>`}
+function admUsuarios(){return `<div class="bar"><button class="btn" data-act="nuevoU">Nuevo usuario</button><span class="muted">Desactivar bloquea el ingreso pero conserva su historial de boletas y pagos.</span></div>
+  <table class="t stack"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th class="r">Por pagar</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr class="${u.activo?'':'dim'}"><td><code>${esc(u.usuario)}</code></td><td>${esc(u.nombre)}</td><td>${u.rol==='admin'?'Administrador':'Técnico'}</td><td>${u.activo?'<span class="badge b-pagada">Activo</span>':'<span class="badge b-rechazada">Desactivado</span>'}</td><td class="r num">${clp(sumar(pendientesDe(u.id),b=>b.monto_aprobado))}</td>
+  <td><div class="acts-cell"><button class="btn ghost sm" data-act="editU" data-id="${esc(u.id)}">Editar</button><button class="btn ghost sm" data-act="claveU" data-id="${esc(u.id)}">Clave</button>${u.id!==S.me.id?`<button class="btn ghost sm ${u.activo?'danger':''}" data-act="togU" data-id="${esc(u.id)}">${u.activo?'Desactivar':'Activar'}</button>`:''}</div></td></tr>`).join('')}</tbody></table>`}
+function admHabs(){const tecs=S.users.filter(u=>u.activo&&u.rol==='tecnico');
+  return `<div class="split"><form id="fHab" class="col box"><h3>Habilitar una boleta extra</h3><p class="muted" style="margin:0">Para casos especiales: el técnico podrá subir una boleta más de ese ítem en ese día, aunque ya haya rendido una.</p>
+  <label>Técnico<select name="tec" required><option value="">Elegir…</option>${tecs.map(u=>opt(u.id,u.nombre||u.usuario,'')).join('')}</select></label>
+  <div class="row2"><label>Fecha<input type="date" name="fecha" value="${hoy()}" required></label><label>Ítem<select name="cat"><option value="">Cualquier ítem</option>${S.cats.map(c=>opt(c.codigo,c.nombre,'')).join('')}</select></label></div>
+  <label>Motivo<input name="motivo" maxlength="150" placeholder="Ej: turno doble en obra"></label><button class="btn">Habilitar</button></form>
+  <div><h3>Habilitaciones otorgadas</h3>${S.habs.length?`<ul class="cards">${S.habs.map(h=>`<li class="card"><div class="c1"><b>${esc(nombreDe(h.tecnico_id))}</b><span class="muted">${fFecha(h.fecha)} · ${h.categoria?esc(catDe(h.categoria)):'Cualquier ítem'}${h.motivo?' · '+esc(h.motivo):''}</span></div>
+  <div class="c2">${h.usada?'<span class="badge b-pagada">Usada</span>':'<span class="badge b-pendiente">Disponible</span>'}${h.usada?'':`<button class="btn ghost sm danger" data-act="delH" data-id="${esc(h.id)}">Quitar</button>`}</div></li>`).join('')}</ul>`:vacio('No has otorgado habilitaciones.')}</div></div>`}
+function admTopes(){return `<form id="fTopes" class="col narrow"><p class="muted" style="margin:0">Máximo que se reembolsa por boleta. Si la boleta es mayor, se paga solo el tope. Un cambio aplica a las boletas que se suban desde ahora.</p>
+  <table class="t"><thead><tr><th>Ítem</th><th class="r">Tope</th><th>Activo</th></tr></thead><tbody>${S.cats.map(c=>`<tr><td><b>${esc(c.nombre)}</b></td><td class="r"><input type="number" class="numin" min="0" step="100" name="t_${esc(c.codigo)}" value="${esc(c.tope)}" aria-label="Tope ${esc(c.nombre)}"></td><td><input type="checkbox" name="a_${esc(c.codigo)}" ${c.activo?'checked':''} aria-label="${esc(c.nombre)} activo"></td></tr>`).join('')}</tbody></table>
+  <button class="btn">Guardar topes</button></form>`}
+
+/* ====== modales ====== */
+async function verArchivo(bucket,path,titulo){if(!path)return toast('Sin archivo adjunto.','err');
+  try{const url=await api.url(bucket,path);const pdf=/\.pdf$/i.test(path)||String(url).startsWith('data:application/pdf');
+    abrirModal(`<h3>${esc(titulo)}</h3>${pdf?`<p><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Abrir PDF</a></p>`:`<img class="visor" src="${esc(url)}" alt="${esc(titulo)}"><p><a href="${esc(url)}" target="_blank" rel="noopener">Abrir en tamaño completo</a></p>`}<div class="acts"><button class="btn ghost" data-x>Cerrar</button></div>`);
+    $('#modalBody').onclick=e=>{if(e.target.closest('[data-x]'))cerrarModal()}}catch(e){toast(msgErr(e),'err')}}
+function modalAjustar(b){abrirModal(`<h3>Revisar boleta</h3><p class="muted">${esc(nombreDe(b.tecnico_id))} · ${esc(catDe(b.categoria))} · ${fFecha(b.fecha)} · boleta ${clp(b.monto_boleta)} · tope ${clp(b.tope_aplicado)}</p>
+  <form class="col"><label>Monto a reembolsar ($)<input type="number" name="monto" min="0" step="1" value="${esc(b.monto_aprobado)}" required></label>
+  <label>Estado<select name="estado">${opt('pendiente','Por pagar',b.estado)}${opt('rechazada','Rechazada (no se paga)',b.estado)}</select></label>
+  <label>Nota para el técnico<input name="motivo" maxlength="200" value="${esc(b.motivo_admin||'')}" placeholder="Ej: boleta ilegible, sube otra"></label>
+  <div class="acts"><button type="button" class="btn ghost danger" data-a="del">Eliminar</button><span class="sp"></span><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn">Guardar</button></div></form>`);
+  const mb=$('#modalBody');
+  mb.onclick=async e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(a==='x')cerrarModal();if(a==='del'){if(await confirmar('¿Eliminar esta boleta? No se puede deshacer.','Eliminar'))try{await api.eliminarBoleta(b);await refrescar('Boleta eliminada.')}catch(er){toast(msgErr(er),'err')}}};
+  mb.onsubmit=async e=>{e.preventDefault();const fm=e.target;try{await api.ajustarBoleta(b.id,{monto_aprobado:Math.max(0,Math.round(+fm.monto.value||0)),estado:fm.estado.value,motivo_admin:fm.motivo.value.trim()||null});cerrarModal();await refrescar('Boleta actualizada.')}catch(er){toast(msgErr(er),'err')}}}
+function modalPago(tecId){const u=S.users.find(x=>x.id===tecId);if(!u)return;const bs=pendientesDe(tecId).sort((a,b)=>a.fecha<b.fecha?-1:1);
+  const datos=[u.nombre,u.rut,u.banco,u.tipo_cuenta,u.numero_cuenta?'N° '+u.numero_cuenta:'',u.email_pago].filter(Boolean);
+  abrirModal(`<h3>Registrar pago a ${esc(u.nombre||u.usuario)}</h3>
+  <div class="banco">${u.banco||u.numero_cuenta?`<div>${datos.map(esc).join('<br>')}</div><button type="button" class="btn ghost sm" data-a="copiar">Copiar datos</button>`:'<span class="muted">Este técnico aún no carga sus datos bancarios (puede hacerlo en Mis datos, o tú en Usuarios).</span>'}</div>
+  <form class="col"><div class="checks"><label class="chk all"><input type="checkbox" data-all checked> Todas las pendientes (${bs.length})</label>${bs.map(b=>`<label class="chk"><input type="checkbox" name="b" value="${esc(b.id)}" checked><span>${fFecha(b.fecha)} · ${esc(catDe(b.categoria))}${b.comercio?' · '+esc(b.comercio):''}</span><span class="num">${clp(b.monto_aprobado)}</span></label>`).join('')}</div>
+  <p class="total">Total a transferir <strong id="totPago"></strong></p>
+  <div class="row2"><label>Fecha de la transferencia<input type="date" name="fecha" value="${hoy()}" max="${hoy()}" required></label><label>Comprobante (foto o PDF)<input type="file" name="comp" accept="image/*,application/pdf" required></label></div>
+  <label>Nota <small class="muted">(opcional)</small><input name="nota" maxlength="200" placeholder="Ej: transferencia desde cuenta empresa"></label>
+  <div class="acts"><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn" id="btnPago">Registrar pago</button></div></form>`);
+  const mb=$('#modalBody'),fm=mb.querySelector('form');
+  const ids=()=>$$('[name=b]:checked',fm).map(i=>bs.find(b=>String(b.id)===i.value).id);
+  const tot=()=>{const s=ids();$('#totPago').textContent=clp(sumar(bs.filter(b=>s.includes(b.id)),b=>b.monto_aprobado));return s};tot();
+  fm.onchange=e=>{if(e.target.matches('[data-all]'))$$('[name=b]',fm).forEach(i=>i.checked=e.target.checked);tot()};
+  mb.onclick=async e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(a==='x')cerrarModal();if(a==='copiar'){try{await navigator.clipboard.writeText(datos.join('\n'));toast('Datos bancarios copiados.','ok')}catch(er){toast('No se pudo copiar.','err')}}};
+  mb.onsubmit=async e=>{e.preventDefault();const s=tot(),file=fm.comp.files[0];if(!s.length)return toast('Marca al menos una boleta.','err');if(!file)return toast('Adjunta el comprobante de la transferencia.','err');
+    const btn=$('#btnPago');btn.disabled=true;btn.textContent='Registrando…';
+    try{await api.registrarPago(tecId,s,fm.fecha.value,fm.nota.value.trim(),file);cerrarModal();await refrescar(`Pago registrado. ${u.nombre||u.usuario} queda con su saldo al día.`)}catch(er){toast(msgErr(er),'err');btn.disabled=false;btn.textContent='Registrar pago'}}}
+function modalDetPago(id){const p=S.pagos.find(x=>String(x.id)===id);if(!p)return;const bs=S.boletas.filter(b=>b.pago_id===p.id);
+  abrirModal(`<h3>Pago del ${fFecha(p.fecha_pago)} · ${esc(nombreDe(p.tecnico_id))}</h3><p class="total">Monto <strong>${clp(p.monto)}</strong></p>${p.nota?`<p class="muted">${esc(p.nota)}</p>`:''}
+  <ul class="mini">${bs.map(b=>`<li><span>${fFecha(b.fecha)} · ${esc(catDe(b.categoria))}${b.comercio?' · '+esc(b.comercio):''}</span><span class="num">${clp(b.monto_aprobado)}</span></li>`).join('')}</ul>
+  <div class="acts"><button class="btn ghost" data-a="comp">Ver comprobante</button><button class="btn" data-a="x">Cerrar</button></div>`);
+  $('#modalBody').onclick=e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(a==='x')cerrarModal();if(a==='comp')verArchivo('comprobantes',p.comprobante_path,`Comprobante · ${fFecha(p.fecha_pago)} · ${clp(p.monto)}`)}}
+function modalUsuario(u){const nuevo=!u;u=u||{rol:'tecnico',activo:true};
+  abrirModal(`<h3>${nuevo?'Nuevo usuario':'Editar a '+esc(u.nombre||u.usuario)}</h3><form class="col">
+  ${nuevo?`<div class="row2"><label>Usuario<input name="usuario" required pattern="[a-z0-9._\\-]{3,30}" placeholder="ej: jperez" autocapitalize="none" spellcheck="false" title="3 a 30 caracteres: minúsculas, números, punto o guion"></label><label>Clave inicial<input name="clave" required minlength="6" autocomplete="new-password"></label></div>`:`<p class="muted" style="margin:0">Usuario: <code>${esc(u.usuario)}</code></p>`}
+  <div class="row2"><label>Nombre completo<input name="nombre" required maxlength="80" value="${esc(u.nombre||'')}"></label><label>Rol<select name="rol" ${u.id===S.me.id?'disabled':''}>${opt('tecnico','Técnico',u.rol)}${opt('admin','Administrador',u.rol)}</select></label></div>
+  ${camposBanco(u)}<div class="acts"><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn">${nuevo?'Crear usuario':'Guardar cambios'}</button></div></form>`);
+  const mb=$('#modalBody');mb.onclick=e=>{if(e.target.closest('[data-a=x]'))cerrarModal()};
+  mb.onsubmit=async e=>{e.preventDefault();const fm=e.target,btn=fm.querySelector('button:not([type])');const d=leerBanco(fm);d.nombre=fm.nombre.value.trim();d.rol=fm.rol.disabled?u.rol:fm.rol.value;btn.disabled=true;
+    try{if(nuevo){d.usuario=fm.usuario.value.trim().toLowerCase();d.clave=fm.clave.value;if(d.clave.length<6)throw new Error('CLAVE_CORTA');await api.crearUsuario(d);cerrarModal();await refrescar(`Usuario ${d.usuario} creado. Entrégale su usuario y clave.`)}
+    else{d.activo=u.activo;await api.actualizarUsuario(u.id,d);cerrarModal();await refrescar('Usuario actualizado.')}}catch(er){btn.disabled=false;toast(msgErr(er),'err')}}}
+function modalClave(u){abrirModal(`<h3>Nueva clave para ${esc(u.nombre||u.usuario)}</h3><form class="col"><label>Clave nueva<input name="c" minlength="6" required autocomplete="new-password"></label><p class="muted" style="margin:0">Entrégasela al usuario; podrá cambiarla en Mis datos.</p><div class="acts"><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn">Guardar clave</button></div></form>`);
+  const mb=$('#modalBody');mb.onclick=e=>{if(e.target.closest('[data-a=x]'))cerrarModal()};
+  mb.onsubmit=async e=>{e.preventDefault();const c=e.target.c.value;try{if(c.length<6)throw new Error('CLAVE_CORTA');if(u.id===S.me.id)await api.cambiarMiClave(c);else await api.cambiarClave(u.id,c);cerrarModal();toast('Clave actualizada.','ok')}catch(er){toast(msgErr(er),'err')}}}
+
+/* ====== exportar ====== */
+function descargarCSV(nombre,filas){const csv='﻿'+filas.map(r=>r.map(v=>{const s=String(v??'');return /[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}catch(e){toast('El navegador bloqueó la descarga.','err')}}
+function csvBoletas(){descargarCSV(`boletas_${hoy()}.csv`,[['Fecha','Técnico','Ítem','Local','N° boleta','Obra','Monto boleta','Tope','Reembolso','Estado','Extra','Nota admin'],...filtrarBoletas().map(b=>[fFecha(b.fecha),nombreDe(b.tecnico_id),catDe(b.categoria),b.comercio,b.numero_boleta,b.obra,b.monto_boleta,b.tope_aplicado,b.monto_aprobado,ESTADOS[b.estado],b.extra?'Sí':'',b.motivo_admin])])}
+function csvPagos(){descargarCSV(`pagos_${hoy()}.csv`,[['Fecha pago','Técnico','Monto','N° boletas','Nota'],...S.pagos.filter(p=>!S.f.tec||p.tecnico_id===S.f.tec).map(p=>[fFecha(p.fecha_pago),nombreDe(p.tecnico_id),p.monto,S.boletas.filter(b=>b.pago_id===p.id).length,p.nota])])}
+
+/* ====== render y eventos ====== */
+function render(){
+  if(!api){app.innerHTML=`<main class="band"><h1>No se pudo cargar</h1><p>Falta la librería de conexión. Revisa tu internet y recarga la página.</p></main>`;return}
+  app.innerHTML=!S.me?vistaLogin():S.me.rol==='admin'?vistaAdm():vistaTec();
+  if(S.me&&S.me.rol!=='admin'&&S.tab==='nueva')actualizarCalc()}
+async function login(fm){const btn=fm.querySelector('button');btn.disabled=true;btn.textContent='Ingresando…';
+  try{S.me=await api.login(fm.u.value,fm.c.value);S.tab=null;S.fb=null;await cargar();render()}catch(e){toast(msgErr(e),'err');btn.disabled=false;btn.textContent='Ingresar'}}
+
+app.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();return}
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const id=b.dataset.id;
+  const bol=()=>S.boletas.find(x=>String(x.id)===id);
+  switch(b.dataset.act){
+    case 'salir':await api.logout();Object.assign(S,{me:null,tab:null,fb:null,users:[],boletas:[],pagos:[],habs:[]});render();break;
+    case 'recargar':refrescar('Datos actualizados.');break;
+    case 'verB':{const x=bol();if(x)verArchivo('boletas',x.foto_path,`Boleta · ${catDe(x.categoria)} · ${fFecha(x.fecha)}`);break}
+    case 'verP':{const p=S.pagos.find(x=>String(x.id)===id);if(p)verArchivo('comprobantes',p.comprobante_path,`Comprobante · ${fFecha(p.fecha_pago)} · ${clp(p.monto)}`);break}
+    case 'delB':{const x=bol();if(x&&await confirmar('¿Eliminar esta boleta? Podrás subirla de nuevo.','Eliminar'))try{await api.eliminarBoleta(x);await refrescar('Boleta eliminada.')}catch(er){toast(msgErr(er),'err')}break}
+    case 'ajustar':{const x=bol();if(x)modalAjustar(x);break}
+    case 'pagar':modalPago(id);break;
+    case 'verTec':S.f={...S.f,tec:id,estado:'pendiente',mes:''};S.tab='boletas';render();break;
+    case 'detP':modalDetPago(id);break;
+    case 'nuevoU':modalUsuario(null);break;
+    case 'editU':modalUsuario(S.users.find(u=>u.id===id));break;
+    case 'claveU':modalClave(S.users.find(u=>u.id===id));break;
+    case 'togU':{const u=S.users.find(x=>x.id===id);if(!u)break;const n=u.nombre||u.usuario;
+      if(await confirmar(u.activo?`¿Desactivar a ${n}? No podrá ingresar; su historial se mantiene.`:`¿Reactivar a ${n}?`,u.activo?'Desactivar':'Activar'))
+        try{await api.actualizarUsuario(u.id,{...u,activo:!u.activo});await refrescar(u.activo?'Usuario desactivado.':'Usuario activado.')}catch(er){toast(msgErr(er),'err')}break}
+    case 'delH':{const h=S.habs.find(x=>String(x.id)===id);if(h&&await confirmar('¿Quitar esta habilitación?','Quitar'))try{await api.eliminarHabilitacion(h.id);await refrescar('Habilitación quitada.')}catch(er){toast(msgErr(er),'err')}break}
+    case 'csvB':csvBoletas();break;
+    case 'csvP':csvPagos();break;
+  }});
+app.addEventListener('change',e=>{
+  const s=e.target.closest('[data-f]');if(s){if(s.dataset.f==='mesTec')S.mesTec=s.value;else S.f[s.dataset.f]=s.value;render();return}
+  const fm=e.target.closest('#fBoleta');if(!fm)return;
+  if(e.target.name==='fecha'){guardarFB(fm);fm.querySelector('.cats').outerHTML=catsHTML();actualizarCalc()}
+  else if(e.target.name==='foto')preview(e.target.files[0]);
+  else{guardarFB(fm);actualizarCalc()}});
+app.addEventListener('input',e=>{const fm=e.target.closest('#fBoleta');if(fm&&e.target.type!=='file'){guardarFB(fm);actualizarCalc()}});
+app.addEventListener('submit',async e=>{e.preventDefault();const fm=e.target;
+  switch(fm.id){
+    case 'fLogin':login(fm);break;
+    case 'fBoleta':enviarBoleta(fm);break;
+    case 'fDatos':try{const d=leerBanco(fm);await api.misDatos(d);Object.assign(S.me,d);toast('Datos guardados.','ok')}catch(er){toast(msgErr(er),'err')}break;
+    case 'fClave':{const c=fm.c1.value;if(c.length<6)return toast(ERR.CLAVE_CORTA,'err');if(c!==fm.c2.value)return toast('Las claves no coinciden.','err');
+      try{await api.cambiarMiClave(c);fm.reset();toast('Clave actualizada.','ok')}catch(er){toast(msgErr(er),'err')}break}
+    case 'fHab':{if(!fm.tec.value)return toast('Elige un técnico.','err');
+      try{await api.crearHabilitacion({tecnico_id:fm.tec.value,fecha:fm.fecha.value,categoria:fm.cat.value||null,motivo:fm.motivo.value.trim()||null});await refrescar('Habilitación creada.')}catch(er){toast(msgErr(er),'err')}break}
+    case 'fTopes':try{for(const c of S.cats){const t=Math.max(0,Math.round(+fm['t_'+c.codigo].value||0)),a=fm['a_'+c.codigo].checked;if(t!==c.tope||a!==c.activo)await api.guardarCategoria(c.codigo,{tope:t,activo:a})}await refrescar('Topes guardados.')}catch(er){toast(msgErr(er),'err')}break;
+  }});
+
+(async()=>{try{if(api){S.me=await api.sesion();if(S.me)await cargar()}}catch(e){console.error(e);S.me=null}render()})();
+}
+</script>
+</body>
+</html>
