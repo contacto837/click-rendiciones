@@ -159,6 +159,7 @@ const clp=n=>fmtCLP.format(Math.round(+n||0));
 const hoy=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date());
 const fFecha=d=>{if(!d)return'';const [y,m,dd]=String(d).slice(0,10).split('-');return `${dd}-${m}-${y}`};
 const mesDe=d=>String(d||'').slice(0,7);
+const normU=u=>String(u??'').normalize('NFC').trim().replace(/\s+/g,' ').toLowerCase();
 const nomMes=m=>{try{const s=new Date(m+'-15T12:00:00').toLocaleDateString('es-CL',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)}catch(e){return m}};
 const sumar=(a,f)=>a.reduce((s,x)=>s+(+f(x)||0),0);
 const opt=(v,t,sel)=>`<option value="${esc(v)}" ${String(v)===String(sel??'')?'selected':''}>${esc(t)}</option>`;
@@ -193,14 +194,14 @@ function msgErr(e){const m=String(e?.message||e||'');for(const k in ERR)if(m.inc
 /* ====== backend Supabase ====== */
 function SupaAPI(){
   const sb=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
-  const correo=u=>`${String(u).trim().toLowerCase()}@${CONFIG.DOMINIO}`;
+  const correo=async u=>{const n=normU(u);if(/^[a-z0-9._-]+$/.test(n))return `${n}@${CONFIG.DOMINIO}`;const h=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(n)))).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,40);return `u-${h}@${CONFIG.DOMINIO}`};
   const chk=({data,error})=>{if(error)throw error;return data};
   let uid=null;
   const perfil=async id=>chk(await sb.from('profiles').select('*').eq('id',id).single());
   const campos=d=>({p_nombre:d.nombre||'',p_rol:d.rol||'tecnico',p_rut:d.rut||null,p_telefono:d.telefono||null,p_banco:d.banco||null,p_tipo_cuenta:d.tipo_cuenta||null,p_numero_cuenta:d.numero_cuenta||null,p_email_pago:d.email_pago||null});
   return {
     async sesion(){const {data}=await sb.auth.getSession();const u=data.session?.user;if(!u)return null;uid=u.id;const p=await perfil(u.id).catch(()=>null);if(!p||!p.activo){await sb.auth.signOut();return null}return p},
-    async login(u,c){const r=await sb.auth.signInWithPassword({email:correo(u),password:c});if(r.error)throw new Error('CREDENCIALES');uid=r.data.user.id;const p=await perfil(uid);if(!p.activo){await sb.auth.signOut();throw new Error('USUARIO_INACTIVO')}return p},
+    async login(u,c){const r=await sb.auth.signInWithPassword({email:await correo(u),password:c});if(r.error)throw new Error('CREDENCIALES');uid=r.data.user.id;const p=await perfil(uid);if(!p.activo){await sb.auth.signOut();throw new Error('USUARIO_INACTIVO')}return p},
     async logout(){await sb.auth.signOut()},
     async categorias(){return chk(await sb.from('categorias').select('*').order('orden'))},
     async guardarCategoria(cod,c){const d=chk(await sb.from('categorias').update(c).eq('codigo',cod).select());if(!d.length)throw new Error('NO_AUTORIZADO')},
@@ -221,7 +222,7 @@ function SupaAPI(){
     async crearUsuario(d){
       const ex=chk(await sb.from('profiles').select('id').eq('usuario',d.usuario));if(ex.length)throw new Error('USUARIO_EXISTE');
       const tmp=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'click-alta-tmp'}});
-      const r=await tmp.auth.signUp({email:correo(d.usuario),password:d.clave,options:{data:{usuario:d.usuario,nombre:d.nombre}}});
+      const r=await tmp.auth.signUp({email:await correo(d.usuario),password:d.clave,options:{data:{usuario:d.usuario,nombre:d.nombre}}});
       if(r.error)throw r.error;const u=r.data.user;if(!u||(u.identities&&u.identities.length===0))throw new Error('USUARIO_EXISTE');
       chk(await sb.rpc('admin_configurar_usuario',{p_id:u.id,...campos(d),p_activo:true}))},
     async actualizarUsuario(id,d){chk(await sb.rpc('admin_configurar_usuario',{p_id:id,...campos(d),p_activo:!!d.activo}))},
@@ -258,7 +259,7 @@ function DemoAPI(){
   const archivo=async file=>{const f=await comprimir(file);if(f.size>2.5e6)throw new Error('En modo demo el archivo debe pesar menos de 2,5 MB.');return aDataURL(f)};
   return {
     async sesion(){const u=yo();return u&&u.activo?pub(u):null},
-    async login(us,c){const u=db.users.find(x=>x.usuario===String(us).trim().toLowerCase()&&x.clave===c);if(!u)throw new Error('CREDENCIALES');if(!u.activo)throw new Error('USUARIO_INACTIVO');setS(u.id);return pub(u)},
+    async login(us,c){const u=db.users.find(x=>x.usuario===normU(us)&&x.clave===c);if(!u)throw new Error('CREDENCIALES');if(!u.activo)throw new Error('USUARIO_INACTIVO');setS(u.id);return pub(u)},
     async logout(){setS(null)},
     async categorias(){return cp(db.cats).sort((a,b)=>a.orden-b.orden)},
     async guardarCategoria(cod,c){req(adm());Object.assign(db.cats.find(x=>x.codigo===cod),c);save()},
@@ -462,12 +463,12 @@ function modalDetPago(id){const p=S.pagos.find(x=>String(x.id)===id);if(!p)retur
   $('#modalBody').onclick=e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(a==='x')cerrarModal();if(a==='comp')verArchivo('comprobantes',p.comprobante_path,`Comprobante · ${fFecha(p.fecha_pago)} · ${clp(p.monto)}`)}}
 function modalUsuario(u){const nuevo=!u;u=u||{rol:'tecnico',activo:true};
   abrirModal(`<h3>${nuevo?'Nuevo usuario':'Editar a '+esc(u.nombre||u.usuario)}</h3><form class="col">
-  ${nuevo?`<div class="row2"><label>Usuario<input name="usuario" required pattern="[a-z0-9._\\-]{3,30}" placeholder="ej: jperez" autocapitalize="none" spellcheck="false" title="3 a 30 caracteres: minúsculas, números, punto o guion"></label><label>Clave inicial<input name="clave" required minlength="6" autocomplete="new-password"></label></div>`:`<p class="muted" style="margin:0">Usuario: <code>${esc(u.usuario)}</code></p>`}
+  ${nuevo?`<div class="row2"><label>Usuario<input name="usuario" required maxlength="40" placeholder="El que quieras, ej: Juan Pérez" autocapitalize="none" spellcheck="false"></label><label>Clave inicial<input name="clave" required minlength="6" autocomplete="new-password"></label></div>`:`<p class="muted" style="margin:0">Usuario: <code>${esc(u.usuario)}</code></p>`}
   <div class="row2"><label>Nombre completo<input name="nombre" required maxlength="80" value="${esc(u.nombre||'')}"></label><label>Rol<select name="rol" ${u.id===S.me.id?'disabled':''}>${opt('tecnico','Técnico',u.rol)}${opt('admin','Administrador',u.rol)}</select></label></div>
   ${camposBanco(u)}<div class="acts"><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn">${nuevo?'Crear usuario':'Guardar cambios'}</button></div></form>`);
   const mb=$('#modalBody');mb.onclick=e=>{if(e.target.closest('[data-a=x]'))cerrarModal()};
   mb.onsubmit=async e=>{e.preventDefault();const fm=e.target,btn=fm.querySelector('button:not([type])');const d=leerBanco(fm);d.nombre=fm.nombre.value.trim();d.rol=fm.rol.disabled?u.rol:fm.rol.value;btn.disabled=true;
-    try{if(nuevo){d.usuario=fm.usuario.value.trim().toLowerCase();d.clave=fm.clave.value;if(d.clave.length<6)throw new Error('CLAVE_CORTA');await api.crearUsuario(d);cerrarModal();await refrescar(`Usuario ${d.usuario} creado. Entrégale su usuario y clave.`)}
+    try{if(nuevo){d.usuario=normU(fm.usuario.value);if(!d.usuario)throw new Error('Escribe un nombre de usuario.');d.clave=fm.clave.value;if(d.clave.length<6)throw new Error('CLAVE_CORTA');await api.crearUsuario(d);cerrarModal();await refrescar(`Usuario ${d.usuario} creado. Entrégale su usuario y clave.`)}
     else{d.activo=u.activo;await api.actualizarUsuario(u.id,d);cerrarModal();await refrescar('Usuario actualizado.')}}catch(er){btn.disabled=false;toast(msgErr(er),'err')}}}
 function modalClave(u){abrirModal(`<h3>Nueva clave para ${esc(u.nombre||u.usuario)}</h3><form class="col"><label>Clave nueva<input name="c" minlength="6" required autocomplete="new-password"></label><p class="muted" style="margin:0">Entrégasela al usuario; podrá cambiarla en Mis datos.</p><div class="acts"><button type="button" class="btn ghost" data-a="x">Cancelar</button><button class="btn">Guardar clave</button></div></form>`);
   const mb=$('#modalBody');mb.onclick=e=>{if(e.target.closest('[data-a=x]'))cerrarModal()};
